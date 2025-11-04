@@ -1,162 +1,133 @@
 <!DOCTYPE html>
 <html lang="en-US">
- <head>
-    <meta charset="utf-8">
-    <title>Earthquake List</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <title>Deliverable Map</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
     <style>
-        body {
-    margin: 0;
-    padding: 0;
-}
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
-#container {
-    display: flex;
-    height: 100vh;
-    flex-direction: row;
-    align-items: stretch;
-}
-#side-panel {
-    flex-basis: 500px;
-    overflow-y: scroll;
-}
+        #side-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 350px;
+            max-height: 90%;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            overflow-y: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            z-index: 1;
+        }
 
-#map {
-    flex-grow: 1;
-}
-button {
-    margin-bottom: 10px;
-}
-table {
-    border-collapse: collapse;
-    border-spacing: 0;
-    width: 100%;
-    border: 1px solid #ddd;
-}
+        @media screen and (max-width: 1024px) {
+            #side-panel { display: none; }
+        }
 
-th,
-td {
-    text-align: left;
-    padding: 16px;
-}
-
-tr:nth-child(even) {
-    background-color: #f2f2f2;
-}
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 4px; text-align: center; }
+        th { background-color: #eee; }
+        button { margin-bottom: 10px; padding: 5px 10px; cursor: pointer; }
     </style>
- </head>
- <body>
-   <main id="container">
-       <div id="side-panel">
+</head>
+<body>
+    <div id="map"></div>
+    <div id="side-panel">
+        <h2>My Deliverable Map</h2>
+        <button>Sort by Value</button>
+        <table>
+            <tr>
+                <th>id</th>
+                <th>value</th>
+                <th>timestamp</th>
+            </tr>
+        </table>
+    </div>
 
-           <h2>Earthquake List</h2>
-           <button>Sort by Magnitude</button>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <script>
+        mapboxgl.accessToken = 'YOUR_ACCESS_TOKEN_HERE';
 
-           <table>
-               <tr>
-                   <th>id</th>
-                   <th>magnitude</th>
-                   <th>timestamp</th>
-               </tr>
-           </table>
-
-       </div>
-       <div id="map"></div>
-   </main>
-
-   <!-- Mapbox Library -->
-   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-
-   <!-- Your Mapbox Token + Map Code -->
-   <script>
-       mapboxgl.accessToken = 'pk.eyJ1IjoiZG13YW5naTExIiwiYSI6ImNtaGp5NDcwbTFnY2EyanB1OTY0Y28zYzYifQ.Y0y8yh2dg6NS-434lyO14w';
-
-       const map = new mapboxgl.Map({
-           container: 'map', 
-           style: 'mapbox://styles/mapbox/light-v11',
-           center: [138, 38], 
-           zoom: 4
-       });
-       async function geojsonFetch() {
-    let response, earthquakes, japan, table;
-
-    response = await fetch('assets/earthquakes.geojson');
-    earthquakes = await response.json();
-
-    response = await fetch('assets/japan.json');
-    japan = await response.json();
-
-    // Build table
-    table = document.getElementsByTagName("table")[0];
-    let row, cell1, cell2, cell3;
-    for (let i = 0; i < earthquakes.features.length; i++) {
-        row = table.insertRow(-1);
-        cell1 = row.insertCell(0);
-        cell2 = row.insertCell(1);
-        cell3 = row.insertCell(2);
-        cell1.innerHTML = earthquakes.features[i].properties.id;
-        cell2.innerHTML = earthquakes.features[i].properties.mag;
-        cell3.innerHTML = new Date(earthquakes.features[i].properties.time).toLocaleDateString("en-US");
-    }
-
-    // Add map layers
-    map.on('load', function loadingData() {
-        map.addSource('earthquakes', { type: 'geojson', data: earthquakes });
-        map.addLayer({
-            id: 'earthquakes-layer',
-            type: 'circle',
-            source: 'earthquakes',
-            paint: {
-                'circle-radius': 8,
-                'circle-stroke-width': 2,
-                'circle-color': 'red',
-                'circle-stroke-color': 'white'
-            }
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/outdoors-v12',
+            center: [0, 20],
+            zoom: 2
         });
 
-        map.addSource('japan', { type: 'geojson', data: japan });
-        map.addLayer({
-            id: 'japan-layer',
-            type: 'fill',
-            source: 'japan',
-            paint: {
-                'fill-color': '#0080ff',
-                'fill-opacity': 0.5
-            }
-        });
-    });
-}
- let btn = document.getElementsByTagName("button")[0];
-    btn.addEventListener('click', sortTable);
+        async function loadGeoJSON() {
+            const response1 = await fetch('assets/dataset1.geojson');
+            const data1 = await response1.json();
 
-    function sortTable(e) {
-        let table, rows, switching, i, x, y, shouldSwitch;
-        table = document.getElementsByTagName("table")[0];
-        switching = true;
-        while (switching) {
-            switching = false;
-            rows = table.rows;
-            for (i = 1; i < (rows.length - 1); i++) {
-                shouldSwitch = false;
-                x = parseFloat(rows[i].getElementsByTagName("td")[1].innerHTML);
-                y = parseFloat(rows[i + 1].getElementsByTagName("td")[1].innerHTML);
-                if (x < y) {
-                    shouldSwitch = true;
-                    break;
+            const response2 = await fetch('assets/dataset2.geojson');
+            const data2 = await response2.json();
+
+            // Build table using dataset1
+            const table = document.getElementsByTagName("table")[0];
+            for (let i = 0; i < data1.features.length; i++) {
+                const row = table.insertRow(-1);
+                row.insertCell(0).innerHTML = data1.features[i].properties.id || i+1;
+                row.insertCell(1).innerHTML = data1.features[i].properties.value || 0;
+                row.insertCell(2).innerHTML = new Date(data1.features[i].properties.time || Date.now()).toLocaleDateString("en-US");
+            }
+
+            map.on('load', function() {
+                // Dataset1: Points
+                map.addSource('dataset1', { type: 'geojson', data: data1 });
+                map.addLayer({
+                    id: 'dataset1-layer',
+                    type: 'circle',
+                    source: 'dataset1',
+                    paint: {
+                        'circle-radius': 6,
+                        'circle-color': 'orange',
+                        'circle-stroke-color': 'white',
+                        'circle-stroke-width': 1
+                    }
+                });
+
+                // Dataset2: Polygons
+                map.addSource('dataset2', { type: 'geojson', data: data2 });
+                map.addLayer({
+                    id: 'dataset2-layer',
+                    type: 'fill',
+                    source: 'dataset2',
+                    paint: {
+                        'fill-color': '#0080ff',
+                        'fill-opacity': 0.4
+                    }
+                });
+            });
+        }
+
+        // Sort table button
+        function sortTable() {
+            const table = document.getElementsByTagName("table")[0];
+            let switching = true;
+            while (switching) {
+                switching = false;
+                let rows = table.rows;
+                for (let i = 1; i < rows.length - 1; i++) {
+                    let shouldSwitch = false;
+                    let x = parseFloat(rows[i].getElementsByTagName("td")[1].innerHTML);
+                    let y = parseFloat(rows[i+1].getElementsByTagName("td")[1].innerHTML);
+                    if (x < y) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i+1], rows[i]);
+                    switching = true;
                 }
             }
-            if (shouldSwitch) {
-                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                switching = true;
-            }
         }
-    }
 
-geojsonFetch();
+        document.getElementsByTagName("button")[0].addEventListener('click', sortTable);
 
-   </script>
+        loadGeoJSON();
+    </script>
 </body>
 </html>
